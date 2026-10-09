@@ -1,6 +1,6 @@
 {
   "name": "context-bar",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Always-on stacked context-window bar at the right of the prompt footer, one colour per /context category; toggle with /context-bar",
   "types": "./types/index.d.ts",
   "author": {
