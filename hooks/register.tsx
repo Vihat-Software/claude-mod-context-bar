@@ -39,27 +39,36 @@ export function allocate(cats: readonly Cat[], width: number): number[] {
 }
 
 async function refresh($: EngineInterface): Promise<boolean> {
-  const usage = await $.session.usage({ breakdown: 'summary' })
+  // `summary` only estimates locally (tool schemas came out ~50% high); `full`
+  // counts with the token-count API, which is what /context shows.
+  const usage = await $.session.usage({ breakdown: 'full' }).catch(() => $.session.usage({ breakdown: 'summary' }))
   const b = usage.context.breakdown
   if (!b) return false
+  const cats = b.categories
+    .filter(c => c.kind !== 'deferred' && !/deferred/i.test(c.name))
+    .map(c => ({ name: c.name, tokens: c.tokens, color: c.color, kind: c.kind }))
+  // Same figure /context headlines: real usage only, not free space or the
+  // autocompact buffer (b.percentage can count more than that).
+  const used = cats.reduce((sum, c) => (c.kind === 'free' || c.kind === 'buffer' ? sum : sum + c.tokens), 0)
   const snap: Snapshot = {
-    cats: b.categories
-      .filter(c => c.kind !== 'deferred')
-      .map(c => ({ name: c.name, tokens: c.tokens, color: c.color, kind: c.kind })),
+    cats,
     window: b.rawMaxTokens,
-    percent: Math.min(999, b.percentage),
+    percent: b.rawMaxTokens > 0 ? Math.min(999, (used / b.rawMaxTokens) * 100) : 0,
   }
   await update($, snapshot, () => snap)
   $.ui.invalidate('ui.render')
   return true
 }
 
-// A fresh session after /clear has no breakdown for a moment: keep asking
-// until it does, so the bar comes back without waiting for the next turn.
+// After /clear the first breakdown can still describe the old conversation, so
+// a first success is not proof of freshness: keep re-measuring for a while.
+// A newer /clear (generation bump) cancels an older loop.
+let generation = 0
 async function refreshUntilReady($: EngineInterface) {
-  for (let i = 0; i < 20; i++) {
-    if (await refresh($).catch(() => false)) return
-    await $.clock.sleep(500)
+  const mine = ++generation
+  for (let i = 0; i < 16 && mine === generation; i++) {
+    await refresh($).catch(() => false)
+    await $.clock.sleep(i < 4 ? 500 : 1500)
   }
 }
 
