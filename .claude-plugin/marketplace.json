@@ -1,0 +1,14 @@
+{
+  "name": "context-bar",
+  "owner": {
+    "name": "Vihat Software",
+    "url": "https://vihatsoftware.com"
+  },
+  "plugins": [
+    {
+      "name": "context-bar",
+      "source": "./"
+    }
+  ],
+  "description": "Context-window stacked bar for the Claude Code prompt footer"
+}

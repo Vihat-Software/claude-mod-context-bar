@@ -1,0 +1,12 @@
+{
+  "name": "context-bar",
+  "version": "1.0.0",
+  "description": "Always-on stacked context-window bar at the right of the prompt footer, one colour per /context category; toggle with /context-bar",
+  "types": "./types/index.d.ts",
+  "author": {
+    "name": "Vihat Software",
+    "url": "https://vihatsoftware.com"
+  },
+  "homepage": "https://vihatsoftware.com",
+  "repository": "https://github.com/Vihat-Software/claude-mod-context-bar"
+}
