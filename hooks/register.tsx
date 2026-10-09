@@ -38,10 +38,10 @@ export function allocate(cats: readonly Cat[], width: number): number[] {
   return cells
 }
 
-async function refresh($: EngineInterface) {
+async function refresh($: EngineInterface): Promise<boolean> {
   const usage = await $.session.usage({ breakdown: 'summary' })
   const b = usage.context.breakdown
-  if (!b) return
+  if (!b) return false
   const snap: Snapshot = {
     cats: b.categories
       .filter(c => c.kind !== 'deferred')
@@ -51,6 +51,16 @@ async function refresh($: EngineInterface) {
   }
   await update($, snapshot, () => snap)
   $.ui.invalidate('ui.render')
+  return true
+}
+
+// A fresh session after /clear has no breakdown for a moment: keep asking
+// until it does, so the bar comes back without waiting for the next turn.
+async function refreshUntilReady($: EngineInterface) {
+  for (let i = 0; i < 20; i++) {
+    if (await refresh($).catch(() => false)) return
+    await $.clock.sleep(500)
+  }
 }
 
 export const register: Register = on => {
@@ -71,13 +81,14 @@ export const register: Register = on => {
     if (e.reason === 'clear') {
       await update($, snapshot, () => null)
       $.ui.invalidate('ui.render')
+      void refreshUntilReady($).catch(() => {})
     }
 
     return next(e)
   })
 
   on('classic.SessionStart', async ($, e, next) => {
-    if (e.source === 'clear') void refresh($).catch(() => {})
+    if (e.source === 'clear') void refreshUntilReady($).catch(() => {})
 
     return next(e)
   })
