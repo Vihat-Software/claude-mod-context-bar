@@ -64,6 +64,24 @@ export const register: Register = on => {
     return next(e)
   })
 
+  // /clear ends the session without a `session.start` and without a measure
+  // until the next turn: drop the stale snapshot now, then redraw from the
+  // fresh context once the new one has started.
+  on('session.end', async ($, e, next) => {
+    if (e.reason === 'clear') {
+      await update($, snapshot, () => null)
+      $.ui.invalidate('ui.render')
+    }
+
+    return next(e)
+  })
+
+  on('classic.SessionStart', async ($, e, next) => {
+    if (e.source === 'clear') void refresh($).catch(() => {})
+
+    return next(e)
+  })
+
   on('session.measure', async ($, e, next) => {
     void refresh($).catch(() => {})
 
