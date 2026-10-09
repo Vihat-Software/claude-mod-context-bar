@@ -8,6 +8,8 @@ category, plus the percentage:
 ▇▇▇▅▅▂░░░░ 42%
 ```
 
+![context-bar next to the /context breakdown](docs/demo.png)
+
 ## Install
 
 Requires Claude Code 2.1.275 or later, in a terminal session. The footer is drawn on the terminal and
