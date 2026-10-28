@@ -1,5 +1,5 @@
 export type Cat = { name: string; tokens: number; color: string; kind: string }
-export type Snapshot = { cats: Cat[]; window: number; percent: number }
+export type Snapshot = { model: string; cats: Cat[]; window: number; percent: number }
 
 declare module 'claude-code' {
   interface PluginState {

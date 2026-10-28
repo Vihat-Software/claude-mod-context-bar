@@ -38,6 +38,13 @@ export function allocate(cats: readonly Cat[], width: number): number[] {
   return cells
 }
 
+// `/model` may hand back a raw id ("claude-sonnet-5-5"): show "Sonnet 5.5".
+export function modelLabel(id: string): string {
+  const m = /^claude-([a-z]+)-(\d+(?:-\d+)?)/i.exec(id)
+  if (!m) return id.replace(/\[.*\]$/, '')
+  return `${m[1]![0]!.toUpperCase()}${m[1]!.slice(1)} ${m[2]!.replace('-', '.')}`
+}
+
 async function refresh($: EngineInterface): Promise<boolean> {
   // `summary` only estimates locally (tool schemas came out ~50% high); `full`
   // counts with the token-count API, which is what /context shows.
@@ -50,7 +57,9 @@ async function refresh($: EngineInterface): Promise<boolean> {
   // Same figure /context headlines: real usage only, not free space or the
   // autocompact buffer (b.percentage can count more than that).
   const used = cats.reduce((sum, c) => (c.kind === 'free' || c.kind === 'buffer' ? sum : sum + c.tokens), 0)
+  const model = await $.session.model().then(modelLabel, () => '')
   const snap: Snapshot = {
+    model,
     cats,
     window: b.rawMaxTokens,
     percent: b.rawMaxTokens > 0 ? Math.min(999, (used / b.rawMaxTokens) * 100) : 0,
@@ -108,6 +117,12 @@ export const register: Register = on => {
     return next(e)
   })
 
+  on('classic.PostModelSwitch', async ($, e, next) => {
+    void refresh($).catch(() => {})
+
+    return next(e)
+  })
+
   on('command.run', { command: 'context-bar' }, async $ => {
     const hidden = !(await read($, isHidden))
     await update($, isHidden, () => hidden)
@@ -130,6 +145,7 @@ export const register: Register = on => {
 
     return (
       <Box flexShrink={0}>
+        {snap.model !== '' && <Text dimColor>{snap.model} </Text>}
         {modes !== '' && <Text dimColor>{modes} </Text>}
         {snap.cats.map((c, i) =>
           cells[i]! > 0 ? (
