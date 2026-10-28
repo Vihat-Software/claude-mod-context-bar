@@ -105,12 +105,6 @@ export const register: Register = on => {
     return next(e)
   })
 
-  on('classic.SessionStart', async ($, e, next) => {
-    if (e.source === 'clear') void refreshUntilReady($).catch(() => {})
-
-    return next(e)
-  })
-
   on('session.measure', async ($, e, next) => {
     void refresh($).catch(() => {})
 
